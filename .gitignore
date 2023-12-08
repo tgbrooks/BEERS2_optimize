@@ -1,0 +1,9 @@
+data/
+real_data/
+input_data/
+results/
+*.swp
+*.swo
+*.pyc
+.snakemake
+logs/
