@@ -34,6 +34,7 @@ rule all:
         expand("data/{run}/sample1/BEERS_output.sorted.bam", run = run_configs.keys()),
         expand("data/{run}/sample1/coverage_summary.txt", run = run_configs.keys()),
         expand("data/{run}/sample1/gc_content.txt", run = run_configs.keys()),
+        expand("data/{run}/scores.json", run = run_configs.keys()),
         "results/compare_real_sim_cov",
         "real_data/WT4_PolyA/coverage_summary.txt",
         "real_data/WT4_PolyA/gc_content.txt",
@@ -110,38 +111,6 @@ rule compute_gc_content_from_real:
         mem_mb = 6_000,
     script:
         "scripts/compute_gc_content.py"
-
-rule gather_gc_content:
-    input:
-        gc_content = expand("data/{run}/gc_content.txt", run=run_configs.keys()),
-    output:
-        gc_content = "results/gc_content.txt",
-        gc_summary = "results/gc_summary.txt"
-    run:
-        import pandas
-        import numpy
-        res = []
-        for gc_content in input.gc_content:
-            d = pandas.read_csv(gc_content, sep="\t")
-            res.append(d)
-        data = pandas.concat(res)
-        data.to_csv(output.gc_content, index=False)
-
-        bins = numpy.linspace(0,1, 101)
-        bins[-1] = 1.001 # make it right-inclusive on the last bin
-        def get_GC_content(data):
-            distribution,_ = numpy.histogram(data.GC_content, bins)
-            return pandas.Series(distribution / numpy.sum(distribution), index=bins[:-1])
-        GC_summary = data.groupby(["run", "sample"]).apply(get_GC_content)
-        GC_summary.to_csv(output.gc_summary, sep="\t")
-
-rule plot_gc_content:
-    input:
-        gc_summary = "results/gc_summary.txt",
-    output:
-        directory("results/gc_content/")
-    script:
-        "scripts/plot_gc_content.py"
 
 rule generate_BAM:
     input:
@@ -229,6 +198,19 @@ rule plot_seq_bias:
         rev_frequencies = "results/seq_bias/rev_seq_frequencies.png",
     script:
         "scripts/plot_seq_bias.py"
+
+rule compute_scores:
+    input:
+        sim_cov = "data/{run}/sample1/coverage_summary.txt",
+        sim_gc = "data/{run}/sample1/gc_content.txt",
+        sim_seq = "data/{run}/sample1/seq_frequencies.json",
+        real_cov = "real_data/WT4_PolyA/coverage_summary.txt",
+        real_gc = "real_data/WT4_PolyA/gc_content.txt",
+        real_seq = "real_data/WT4_PolyA/seq_frequencies.json"
+    output:
+        results = "data/{run}/scores.json"
+    script:
+        "scripts/compute_scores.py"
 
 rule sort_bam:
     input:

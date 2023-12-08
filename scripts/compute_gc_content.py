@@ -39,6 +39,6 @@ GC_content = pandas.DataFrame({
         "upper_gc_content": bin_edges[1:],
         "read_count": counts_by_bin,
     })
-GC_content.to_csv(snakemake.output.gc_content, sep="\t")
+GC_content.to_csv(snakemake.output.gc_content, sep="\t", index=False)
 #GC_by_transcript = GC_content.groupby(["run", "sample", "TranscriptID"]).GC_content.mean()
 #GC_by_transcript.reset_index().to_csv(snakemake.output.gc_content, sep="\t")
