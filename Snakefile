@@ -29,9 +29,6 @@ rule all:
         #"results/gc_content/",
         #"results/coverage",
         #"results/seq_bias/fwd_seq_frequencies.png",
-        #"results/frag_sizes/frag_sizes.fragment_counts.A.png",
-        #"results/polya_tail/polya_tail_length.png",
-        #"results/pcr_dupes/pcr_dupes.png",
         #"results/igv/url.txt",
         expand("data/{run}/beers/finished_flag", run = run_configs.keys()),
         expand("data/{run}/sample1/BEERS_output.sorted.bam", run = run_configs.keys()),
@@ -40,6 +37,8 @@ rule all:
         "results/compare_real_sim_cov",
         "real_data/WT4_PolyA/coverage_summary.txt",
         "real_data/WT4_PolyA/gc_content.txt",
+        "data/all_bias/sample1/seq_frequencies.json",
+        "real_data/WT4_PolyA/seq_frequencies.json",
 
 rule prep_input:
     input:
@@ -200,10 +199,25 @@ rule compare_real_sim_cov:
 
 rule compute_seq_bias:
     input:
-        flag_file = expand("data/{run}/beers/finished_flag",
-                        run = run_configs.keys(),),
+        flag_file = "data/{run}/beers/finished_flag",
+    params:
+        fastq_files = lambda wildcards: pathlib.Path(f"data/{wildcards.run}/beers/results/").glob(f"S{wildcards.sample}_L1*.fastq")
     output:
-        seq_frequencies = "results/seq_bias/seq_frequencies.json",
+        seq_frequencies = "data/{run}/sample{sample}/seq_frequencies.json",
+    script:
+        "scripts/compute_seq_bias.py"
+
+rule compute_seq_bias_from_real:
+    input:
+        "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R1.fastq.gz",
+        "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R2.fastq.gz",
+    params:
+        fastq_files = [
+            "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R1.fastq.gz",
+            "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R2.fastq.gz",
+        ]
+    output:
+        seq_frequencies = "real_data/WT4_PolyA/seq_frequencies.json",
     script:
         "scripts/compute_seq_bias.py"
 
