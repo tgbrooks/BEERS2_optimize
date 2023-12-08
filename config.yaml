@@ -1,0 +1,15 @@
+run_configs: {
+    "all_bias": {
+        "gc_bias_constant": 1.0,
+        "gc_bias_linear": 0.0,
+        "gc_bias_quadratic": -100.0,
+        "breakpoint_prob_per_base": 0.0002,
+        "perfect_priming": "false",
+        "selection_step": "polya_step.PolyAStep",
+    },
+}
+
+
+sample_ids: [1]
+
+lanes_used: [1]
