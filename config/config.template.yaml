@@ -35,8 +35,7 @@ output:
     # Set to true to receive full logs of intermediate steps
     # These can be very large for a full-sized BEERS run (100s of GB)
     # since they document every intermediate molecule throughout library prep
-    # NOTE: we use true here since we make plots from all logs
-    full_logs: true
+    full_logs: false
 
 global_config:
     # global configuration contains configuration values that are available to all
@@ -243,15 +242,15 @@ library_prep_pipeline:
             # observation of these biases in fragment start positions.
             # If no bias is desired, set all values to 0.25.
             position_probability_matrix:
-                A: [0.50, 0.1, 0.40, 0.30, 0.25, 0.15]
-                C: [0.20, 0.5, 0.3 , 0.25, 0.25, 0.15]
-                G: [0.15, 0.1, 0.15, 0.25, 0.25, 0.20]
-                T: [0.15, 0.3, 0.15, 0.20, 0.25, 0.50]
+                A: $fwd_A_freq
+                C: $fwd_C_freq
+                G: $fwd_G_freq
+                T: $fwd_T_freq
 
             # Rate of priming: approximate number of primers that
             # will bind (if bias-free) per kilobase of the fragment
             # Higher numbers will loose less of the 5' side.
-            primes_per_kb: 50
+            primes_per_kb: $primes_per_kb
 
     -   step_name: second_strand_synthesis_step.SecondStrandSynthesisStep
         # Second Strand synthesis copies the single-stranded cDNA from
@@ -260,13 +259,13 @@ library_prep_pipeline:
         # If not perfect_priming, will loose some of the 5' end of the
         # first strand of cDNA, which is the 3' end of the original fragment
         parameters:
-            perfect_priming: $perfect_priming 
+            perfect_priming: $perfect_priming
             position_probability_matrix:
-                A: [0.50, 0.1, 0.40, 0.30, 0.25, 0.15]
-                C: [0.20, 0.5, 0.3 , 0.25, 0.25, 0.15]
-                G: [0.15, 0.1, 0.15, 0.25, 0.25, 0.20]
-                T: [0.15, 0.3, 0.15, 0.20, 0.25, 0.50]
-            primes_per_kb: 50
+                A: $rev_A_freq
+                C: $rev_C_freq
+                G: $rev_G_freq
+                T: $rev_T_freq
+            primes_per_kb: $primes_per_kb
 
     -   step_name: sizing_step.SizingStep
         # Sizing step throws out molecules that do not fit the

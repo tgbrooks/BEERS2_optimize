@@ -71,12 +71,17 @@ rule run_beers:
         mem_mb = 18_000
     run:
         #Generate config template
+        import numpy as np
         import string
         config_template = string.Template(open(input.config_template, "r").read())
         config_fill_values = run_configs[wildcards.run]
         config_fill_values['camparee_output'] = "none"# input.camparee_output
         config_fill_values['molecule_files'] = pathlib.Path(params.molecule_dir).resolve()
         config_fill_values['reference_genome'] = pathlib.Path(input.reference_genome).resolve()
+        # Since the frequencies sum to 1, we fill in the remaining T frequency from the other three
+        config_fill_values['fwd_T_freq'] = list(1 - (np.array(config_fill_values['fwd_A_freq']) + np.array(config_fill_values['fwd_C_freq']) + np.array(config_fill_values['fwd_G_freq'])))
+        config_fill_values['rev_T_freq'] = list(1 - (np.array(config_fill_values['rev_A_freq']) + np.array(config_fill_values['rev_C_freq']) + np.array(config_fill_values['rev_G_freq'])))
+
         config = config_template.substitute(config_fill_values)
         with open(params.config, "w") as f:
             f.write(config)
