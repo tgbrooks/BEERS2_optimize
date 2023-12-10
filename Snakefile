@@ -18,6 +18,9 @@ CAMPAREE_CONFIG = 'config/camparee_config.yaml'
 TRANSCRIPTOME_FASTA = "/project/itmatlab/index/SALMON-1.9.0_indexes/GRCm38.ensemblv93/Mus_musculus.GRCm38.Ensembl.v93.cdna_ncrna_dna.fa.gz"
 GTF = "/project/itmatlab/index/SALMON-1.9.0_indexes/GRCm38.ensemblv93/Mus_musculus.GRCm38.93.gtf.gz"
 
+ITERS_PER_BATCH = 10
+TAKE_TOP_N = 3
+
 wildcard_constraints:
     sample = "[0-9]+",
     run = "[a-zA-Z0-9_]+",
@@ -40,6 +43,7 @@ rule all:
         "real_data/WT4_PolyA/gc_content.txt",
         "data/all_bias/sample1/seq_frequencies.json",
         "real_data/WT4_PolyA/seq_frequencies.json",
+        expand("data/batch2_{num}/scores.json", num=range(ITERS_PER_BATCH)),
 
 rule prep_input:
     input:
@@ -56,25 +60,41 @@ rule prep_input:
     script:
         "scripts/prep_input.py"
 
+rule generate_config:
+    input:
+        scores = lambda wildcards: expand("data/batch{batch}_{num}/scores.json",
+                                        batch = [int(wildcards.batch)-1], 
+                                        num = range(ITERS_PER_BATCH if int(wildcards.batch) > 1 else 1)),
+        configs = lambda wildcards: expand("config/generated/batch{batch}_{num}.json",
+                                        batch = [int(wildcards.batch)-1], 
+                                        num = range(ITERS_PER_BATCH if int(wildcards.batch) > 1 else 1)),
+    output:
+        config = "config/generated/batch{batch}_{num}.json",
+    params:
+        top_n = TAKE_TOP_N
+    script:
+        "scripts/generate_config.py"
+
 rule run_beers:
     input:
         config_template = "config/config.template.yaml",
         molecule_files = "input_data/sample1/molecule_file.txt",
         reference_genome = "input_data/reference_genome.fasta",
+        config = "config/generated/batch{batch}_{num}.json",
     output:
-        flag_file = "data/{run}/beers/finished_flag"
+        flag_file = "data/batch{batch}_{num}/beers/finished_flag"
     params:
         molecule_dir = "input_data/",
-        beers_dir = directory("data/{run}/beers/"),
-        config = "data/{run}/beers.config.yaml",
+        beers_dir = directory("data/batch{batch}_{num}/beers/"),
+        config = "data/batch{batch}_{num}/beers.config.yaml",
     resources:
         mem_mb = 18_000
     run:
         #Generate config template
         import numpy as np
         import string
-        config_template = string.Template(open(input.config_template, "r").read())
-        config_fill_values = run_configs[wildcards.run]
+        import json
+        config_fill_values = json.load(open(input.config))
         config_fill_values['camparee_output'] = "none"# input.camparee_output
         config_fill_values['molecule_files'] = pathlib.Path(params.molecule_dir).resolve()
         config_fill_values['reference_genome'] = pathlib.Path(input.reference_genome).resolve()
@@ -82,6 +102,7 @@ rule run_beers:
         config_fill_values['fwd_T_freq'] = list(1 - (np.array(config_fill_values['fwd_A_freq']) + np.array(config_fill_values['fwd_C_freq']) + np.array(config_fill_values['fwd_G_freq'])))
         config_fill_values['rev_T_freq'] = list(1 - (np.array(config_fill_values['rev_A_freq']) + np.array(config_fill_values['rev_C_freq']) + np.array(config_fill_values['rev_G_freq'])))
 
+        config_template = string.Template(open(input.config_template, "r").read())
         config = config_template.substitute(config_fill_values)
         with open(params.config, "w") as f:
             f.write(config)

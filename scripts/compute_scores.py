@@ -21,29 +21,32 @@ def EMD(a,b):
 
 
 ### COVERAGE
+# scored by earth-movers distance normalized by SD in real data
 sim_cov = pl.read_csv(snakemake.input.sim_cov, separator="\t")
 real_cov = pl.read_csv(snakemake.input.real_cov, separator="\t")
 
 cov_dist = scipy.stats.wasserstein_distance(
         sim_cov['coef_of_var'],
         real_cov['coef_of_var'],
-    )
+    ) / real_cov['coef_of_var'].std()
 depth_dist = scipy.stats.wasserstein_distance(
         sim_cov['depth_pos_regression'] / sim_cov['mean'],
         real_cov['depth_pos_regression'] / real_cov['mean'],
-    )
+    ) / (real_cov['depth_pos_regression'] / real_cov['mean']).std()
 
 ### GC CONTENT
+# scored by earth-movers distance normalized by SD in real data
 sim_gc = pl.read_csv(snakemake.input.sim_gc, separator="\t")
 real_gc = pl.read_csv(snakemake.input.real_gc, separator="\t")
 
 gc_dist = EMD(
         sim_gc['read_count'],
         real_gc['read_count'],
-    )
+    ) / real_gc['read_count'].std()
 
 
 ### SEQUENCE BIAS
+# Scored by average base-pair frequency mismatch
 sim_seq = json.load(open(snakemake.input.sim_seq))
 real_seq = json.load(open(snakemake.input.real_seq))
 def seq_to_mat(seq):
@@ -58,13 +61,18 @@ def seq_to_mat(seq):
         seq['rev_frequencies']['T'],
     ])
 
-seq_dist = np.abs(seq_to_mat(sim_seq) - seq_to_mat(real_seq)).sum()
+seq_dist = np.abs(seq_to_mat(sim_seq) - seq_to_mat(real_seq)).mean()
 
+## COMBINE THEM FOR AN OVERALL SCORE
+overall = cov_dist + depth_dist + gc_dist + seq_dist
+
+## OUTPUT RESULTS
 results = {
     "cov_dist": cov_dist,
     "depth_dist": depth_dist,
     "gc_dist": gc_dist,
     "seq_dist": seq_dist,
+    "overall": overall
 }
 with open(snakemake.output.results, "wt") as f:
     json.dump(results, f)
