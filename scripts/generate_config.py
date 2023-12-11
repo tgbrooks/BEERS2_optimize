@@ -48,6 +48,19 @@ for outfile in snakemake.output.config:
     perturb_num("gc_bias_quadratic", 10)
     perturb_num("breakpoint_prob_per_base", 1, mode="log", max_val=1)
     perturb_num("primes_per_kb", 5, min_val=1)
+    perturb_num("fragmentation_rate", 1, mode="log", max_val=1)
+
+    # Ensure that these four values are in increasing order by perturbing their differences
+    config['mid_min_diff'] = config['frag_mid_start_size'] - config['frag_min_size']
+    config['mid_mid_diff'] = config['frag_mid_end_size'] - config['frag_mid_start_size']
+    config['max_mid_diff'] = config['frag_max_size'] - config['frag_mid_end_size']
+    perturb_num("frag_min_size", 30, min_val = 50)
+    perturb_num("mid_min_diff", 30, min_val=1)
+    perturb_num("mid_mid_diff", 30, min_val=1)
+    perturb_num("max_mid_diff", 30, min_val=1)
+    config['frag_mid_start_size'] = config['frag_min_size'] + config['mid_min_diff']
+    config['frag_mid_end_size'] = config['frag_mid_start_size'] + config['mid_mid_diff']
+    config['frag_max_size'] = config['frag_mid_end_size'] + config['max_mid_diff']
 
     # NOTE: for now, we don't vary the sequence frequencies, and just use the empirical frequencies
     #for base in ["A", "C", "G"]:

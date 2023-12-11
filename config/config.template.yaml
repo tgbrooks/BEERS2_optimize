@@ -190,7 +190,7 @@ library_prep_pipeline:
             # which determines the time it takes until a molecule to fragments.
             # Molecules which would take longer then 'runtime' to fragment, do not fragment.
             # Molecules may also fragment multiple times if lambda is high enough.
-            rate: 0.005
+            rate: $fragmentation_rate
             runtime: 1
             # Since fragmentation generates many very small fragments that will
             # be quickly lost in the following steps, we have the option to
@@ -284,14 +284,14 @@ library_prep_pipeline:
             #
             # All molecules with lengths outside of this range
             # will be discarded:
-            min_length: 100
-            max_length: 400
+            min_length: $frag_min_size
+            max_length: $frag_max_size
             # Molecules whose length is inside this range will
             # always be retained. Retention probability raises
             # linearly from 0 to 1 between the min/max values
             # above and this range here.
-            select_all_start_length: 200
-            select_all_end_length: 300
+            select_all_start_length: $frag_mid_start_size
+            select_all_end_length: $frag_mid_end_size
 
     -   step_name: adapter_ligation_step.AdapterLigationStep
         # Adpater Ligation attaches adapters to each end of the molecules

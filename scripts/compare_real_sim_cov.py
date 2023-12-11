@@ -48,7 +48,7 @@ fig = sns.catplot(
     y = "regression",
     kind = "violin",
 )
-fig.savefig(outdir / "regerssion.png", dpi=300)
+fig.savefig(outdir / "regression.png", dpi=300)
 
 
 
