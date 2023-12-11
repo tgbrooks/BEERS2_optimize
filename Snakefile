@@ -184,8 +184,12 @@ rule compute_real_coverage:
 
 rule compare_real_sim_cov:
     input:
-        sim = "data/batch5_37/sample1/coverage_summary.txt",
-        real = "real_data/WT4_PolyA/coverage_summary.txt",
+        sim_cov = "data/batch5_37/sample1/coverage_summary.txt",
+        sim_gc = "data/batch5_37/sample1/gc_content.txt",
+        sim_seq = "data/batch5_37/sample1/seq_frequencies.json",
+        real_cov = "real_data/WT4_PolyA/coverage_summary.txt",
+        real_gc = "real_data/WT4_PolyA/gc_content.txt",
+        real_seq = "real_data/WT4_PolyA/seq_frequencies.json"
     output:
         outdir = directory("results/compare_real_sim_cov/")
     script:
