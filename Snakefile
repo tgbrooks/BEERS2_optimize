@@ -36,13 +36,15 @@ rule all:
         expand("data/{run}/sample1/BEERS_output.sorted.bam", run = run_configs.keys()),
         expand("data/{run}/sample1/coverage_summary.txt", run = run_configs.keys()),
         expand("data/{run}/sample1/gc_content.txt", run = run_configs.keys()),
+        expand("data/{run}/sample1/frag_sizes.txt", run = run_configs.keys()),
         expand("data/{run}/scores.json", run = run_configs.keys()),
-        "results/compare_real_sim_cov",
+        #"results/compare_real_sim_cov",
         "real_data/WT4_PolyA/coverage_summary.txt",
         "real_data/WT4_PolyA/gc_content.txt",
         "data/all_bias/sample1/seq_frequencies.json",
         "real_data/WT4_PolyA/seq_frequencies.json",
-        expand("data/batch5_{num}/scores.json", num=range(ITERS_PER_BATCH)),
+        "real_data/WT4_PolyA/frag_sizes.txt",
+        #expand("data/batch5_{num}/scores.json", num=range(ITERS_PER_BATCH)),
 
 rule prep_input:
     input:
@@ -219,6 +221,27 @@ rule compute_seq_bias_from_real:
     script:
         "scripts/compute_seq_bias.py"
 
+rule compute_frag_sizes_from_beers:
+    input:
+        bam = "data/{run}/sample1/BEERS_output.sorted.bam",
+        gene_ids = "chosen_transcripts.txt",
+        bai = "data/{run}/sample1/BEERS_output.sorted.bam.bai",
+    output:
+        frag_sizes = "data/{run}/sample1/frag_sizes.txt"
+    script:
+        "scripts/compute_frag_sizes.py"
+
+rule compute_frag_sizes_from_real:
+    input:
+        bam = "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.Aligned.out.sorted.bam",
+        gene_ids = "chosen_transcripts.txt",
+        gtf = GTF,
+        bai = "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.Aligned.out.sorted.bam.bai",
+    output:
+        frag_sizes = "real_data/WT4_PolyA/frag_sizes.txt"
+    script:
+        "scripts/compute_frag_sizes_from_real.py"
+
 rule plot_seq_bias:
     input:
         seq_frequencies = "results/seq_bias/seq_frequencies.json",
@@ -233,9 +256,11 @@ rule compute_scores:
         sim_cov = "data/{run}/sample1/coverage_summary.txt",
         sim_gc = "data/{run}/sample1/gc_content.txt",
         sim_seq = "data/{run}/sample1/seq_frequencies.json",
+        sim_frag = "data/{run}/sample1/frag_sizes.txt",
         real_cov = "real_data/WT4_PolyA/coverage_summary.txt",
         real_gc = "real_data/WT4_PolyA/gc_content.txt",
-        real_seq = "real_data/WT4_PolyA/seq_frequencies.json"
+        real_seq = "real_data/WT4_PolyA/seq_frequencies.json",
+        real_frag = "real_data/WT4_PolyA/frag_sizes.txt",
     output:
         results = "data/{run}/scores.json"
     script:

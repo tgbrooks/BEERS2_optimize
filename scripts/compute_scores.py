@@ -17,8 +17,14 @@ def EMD(a,b):
     emd = np.zeros(len(a))
     for i in range(1,len(a)):
         emd[i] = a[i-1] + emd[i-1] - b[i-1]
-    return np.abs(emd).sum()
 
+    # and we normalize the end result to b's distribution for comparison
+    # across variables
+    # Normalize by the standard deviation (computed from the distribution b)
+    b_val = np.arange(len(b))
+    b_mean = (b_val*b).sum()
+    b_sd = np.sqrt((((b_val - b_mean)**2)*b).sum())
+    return np.abs(emd).sum() / b_sd
 
 ### COVERAGE
 # scored by earth-movers distance normalized by SD in real data
@@ -42,7 +48,7 @@ real_gc = pl.read_csv(snakemake.input.real_gc, separator="\t")
 gc_dist = EMD(
         sim_gc['read_count'],
         real_gc['read_count'],
-    ) / real_gc['read_count'].std()
+    )
 
 
 ### SEQUENCE BIAS
@@ -63,8 +69,27 @@ def seq_to_mat(seq):
 
 seq_dist = np.abs(seq_to_mat(sim_seq) - seq_to_mat(real_seq)).mean()
 
+
+### FRAG SIZES
+sim_frag = pl.read_csv(snakemake.input.sim_frag, separator="\t") \
+        .sort("frag_size")
+real_frag = pl.read_csv(snakemake.input.real_frag, separator="\t") \
+        .sort("frag_size")
+longest_frag = max(sim_frag['frag_size'].max(), real_frag['frag_size'].max())
+print(sim_frag)
+print(real_frag)
+print(longest_frag)
+all_frag_sizes = pl.DataFrame({"frag_size": np.arange(1, longest_frag+1)})
+print(all_frag_sizes)
+sim_frag = sim_frag.join(all_frag_sizes, on="frag_size", how="outer") \
+        .with_columns(pl.col("counts").fill_null(0).alias("counts"))
+real_frag = real_frag.join(all_frag_sizes, on="frag_size", how="outer") \
+        .with_columns(pl.col("counts").fill_null(0).alias("counts"))
+
+frag_dist = EMD(sim_frag['counts'], real_frag['counts'])
+
 ## COMBINE THEM FOR AN OVERALL SCORE
-overall = cov_dist + depth_dist + gc_dist + seq_dist
+overall = cov_dist + depth_dist + gc_dist + seq_dist + frag_dist
 
 ## OUTPUT RESULTS
 results = {
@@ -72,6 +97,7 @@ results = {
     "depth_dist": depth_dist,
     "gc_dist": gc_dist,
     "seq_dist": seq_dist,
+    "frag_dist": frag_dist,
     "overall": overall
 }
 with open(snakemake.output.results, "wt") as f:
