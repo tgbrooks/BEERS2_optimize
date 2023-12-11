@@ -10,11 +10,11 @@ outdir.mkdir(exist_ok=True)
 ## We selected these transcripts from the PORT-derived quantifications which must have differed from
 ## the analysis here (different ENSEMBL version) and so the 'high expressed' genes from that quantification aren't
 ## high expressed here
-real = pl.read_csv("real_data/WT4_PolyA/coverage_summary.txt", separator="\t") \
+real = pl.read_csv(snakemake.input.real, separator="\t") \
         .filter(pl.col("mean") > 100) \
         .with_columns(pl.lit("real").alias("source"))
 
-sim = pl.read_csv("data/all_bias/sample1/coverage_summary.txt", separator="\t") \
+sim = pl.read_csv(snakemake.input.sim, separator="\t") \
         .with_columns(pl.lit("sim").alias("source"))
 
 

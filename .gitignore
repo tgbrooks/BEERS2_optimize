@@ -7,3 +7,4 @@ results/
 *.pyc
 .snakemake
 logs/
+config/generated/

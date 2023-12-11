@@ -12,14 +12,13 @@ RCLONE_REMOTE = "aws_igv_data" # Must first run `rclone config` and set up a rem
 BUCKET_NAME = "itmat.igv.data" # Bucket to upload to with rclone for trackhubs
 BUCKET_DIR = f"BEERS2_ASSESS/DATA"
 
-RUN_BEERS_PATH = 'beers_venv/bin/run_beers'
 CAMPAREE_CONFIG = 'config/camparee_config.yaml'
 
 TRANSCRIPTOME_FASTA = "/project/itmatlab/index/SALMON-1.9.0_indexes/GRCm38.ensemblv93/Mus_musculus.GRCm38.Ensembl.v93.cdna_ncrna_dna.fa.gz"
 GTF = "/project/itmatlab/index/SALMON-1.9.0_indexes/GRCm38.ensemblv93/Mus_musculus.GRCm38.93.gtf.gz"
 
-ITERS_PER_BATCH = 10
-TAKE_TOP_N = 3
+ITERS_PER_BATCH = 50
+TAKE_TOP_N = 10
 
 wildcard_constraints:
     sample = "[0-9]+",
@@ -43,7 +42,7 @@ rule all:
         "real_data/WT4_PolyA/gc_content.txt",
         "data/all_bias/sample1/seq_frequencies.json",
         "real_data/WT4_PolyA/seq_frequencies.json",
-        expand("data/batch2_{num}/scores.json", num=range(ITERS_PER_BATCH)),
+        expand("data/batch5_{num}/scores.json", num=range(ITERS_PER_BATCH)),
 
 rule prep_input:
     input:
@@ -62,14 +61,14 @@ rule prep_input:
 
 rule generate_config:
     input:
-        scores = lambda wildcards: expand("data/batch{batch}_{num}/scores.json",
-                                        batch = [int(wildcards.batch)-1], 
-                                        num = range(ITERS_PER_BATCH if int(wildcards.batch) > 1 else 1)),
-        configs = lambda wildcards: expand("config/generated/batch{batch}_{num}.json",
-                                        batch = [int(wildcards.batch)-1], 
-                                        num = range(ITERS_PER_BATCH if int(wildcards.batch) > 1 else 1)),
+        scores = lambda wildcards: [f"data/batch{batch}_{num}/scores.json"
+                                        for batch in range(int(wildcards.batch))
+                                        for num in range(ITERS_PER_BATCH if batch > 0 else 1)],
+        configs = lambda wildcards: [f"config/generated/batch{batch}_{num}.json"
+                                        for batch in range(int(wildcards.batch))
+                                        for num in range(ITERS_PER_BATCH if batch > 0 else 1)],
     output:
-        config = "config/generated/batch{batch}_{num}.json",
+        config = expand("config/generated/batch{{batch}}_{num}.json", num = range(ITERS_PER_BATCH))
     params:
         top_n = TAKE_TOP_N
     script:
@@ -107,7 +106,7 @@ rule run_beers:
         with open(params.config, "w") as f:
             f.write(config)
         # Run beers
-        beers_cmd =  f"run_beers --configfile {params.config} --directory {params.beers_dir} -c 1 --rerun-incomplete"
+        beers_cmd =  f"beers --configfile {params.config} --directory {params.beers_dir} -c 1 --rerun-incomplete"
         print(beers_cmd)
         shell(beers_cmd)
         shell("touch {output.flag_file}")
@@ -185,8 +184,8 @@ rule compute_real_coverage:
 
 rule compare_real_sim_cov:
     input:
-        "data/all_bias/sample1/coverage_summary.txt",
-        "real_data/WT4_PolyA/coverage_summary.txt",
+        sim = "data/batch5_37/sample1/coverage_summary.txt",
+        real = "real_data/WT4_PolyA/coverage_summary.txt",
     output:
         outdir = directory("results/compare_real_sim_cov/")
     script:
