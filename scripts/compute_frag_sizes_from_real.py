@@ -38,6 +38,14 @@ exons = transcript_ids.join(gtf.filter(pl.col("feature") == "exon"), on="transcr
         .select("transcript_id", "seqname", "start", "end")
         #.join(transcripts, on=["transcript_id", "seqname"], how="left")
 
+def get_match_len(cigar):
+    ref_len = 0
+    for op, length in cigar:
+        # We don't count N (indels) or S (soft clips) as part of the length
+        if op in ["M", "I"]:
+            ref_len += length
+    return ref_len
+
 frag_sizes = []
 for (transcript_id, chrom, trans_start, trans_end) in transcripts.iter_rows():
 
@@ -53,8 +61,6 @@ for (transcript_id, chrom, trans_start, trans_end) in transcripts.iter_rows():
     def get_relative_position(pos):
         i = np.searchsorted(starts, pos, side="right") - 1
         return pos - starts[i] + cumlen[i]
-    def get_match_len(cigar):
-        return beers_utils.cigar.match_seq_length(cigar)
     def is_compatible(pos, cigar):
         # computes whether an alignment could be from this transcript
         curr_pos = pos
