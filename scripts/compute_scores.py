@@ -9,9 +9,9 @@ def EMD(a,b):
     #       when you just have two samples, not distributions
     assert len(a) == len(b)
     # Normalize to a probability distribution
-    a = np.array(a)
+    a = np.array(a, dtype=float)
     a /= a.sum()
-    b = np.array(b)
+    b = np.array(b, dtype=float)
     b /= b.sum()
 
     emd = np.zeros(len(a))
@@ -76,11 +76,7 @@ sim_frag = pl.read_csv(snakemake.input.sim_frag, separator="\t") \
 real_frag = pl.read_csv(snakemake.input.real_frag, separator="\t") \
         .sort("frag_size")
 longest_frag = max(sim_frag['frag_size'].max(), real_frag['frag_size'].max())
-print(sim_frag)
-print(real_frag)
-print(longest_frag)
 all_frag_sizes = pl.DataFrame({"frag_size": np.arange(1, longest_frag+1)})
-print(all_frag_sizes)
 sim_frag = sim_frag.join(all_frag_sizes, on="frag_size", how="outer") \
         .with_columns(pl.col("counts").fill_null(0).alias("counts"))
 real_frag = real_frag.join(all_frag_sizes, on="frag_size", how="outer") \

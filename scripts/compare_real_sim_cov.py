@@ -84,3 +84,28 @@ fig = sns.relplot(
     kind = "line"
 )
 fig.savefig(outdir / "gc.png", dpi=300)
+
+
+### FRAG SIZES
+sim_frag = pl.read_csv(snakemake.input.sim_frag, separator="\t") \
+        .sort("frag_size") \
+        .with_columns(pl.lit("sim").alias("source"))
+real_frag = pl.read_csv(snakemake.input.real_frag, separator="\t") \
+        .sort("frag_size")\
+        .with_columns(pl.lit("real").alias("source"))
+
+both_frag = pl.concat([
+        sim_frag,
+        real_frag,
+    ]) \
+    .with_columns((pl.col('counts') / pl.col('counts').mean().over('source')).alias("density"))\
+    .to_pandas()
+
+fig = sns.relplot(
+    both_frag,
+    x = "frag_size",
+    y = "density",
+    hue = "source",
+    kind = "line"
+)
+fig.savefig(outdir / "frag_size.png", dpi=300)
