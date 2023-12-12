@@ -6,6 +6,17 @@ import seaborn as sns
 outdir = pathlib.Path(snakemake.output.outdir)
 outdir.mkdir(exist_ok=True)
 
+# Load gene lengths
+with open(snakemake.input.reference_genome, "rt") as f:
+    transcript_lengths = {}
+    while True:
+        line = f.readline().strip()
+        if line == '':
+            break
+        transcript_id = line.removeprefix(">").strip()
+        seq = f.readline().strip()
+        transcript_lengths[transcript_id] = len(seq)
+
 ## Note we filter out a couple transcripts that had very little coverage
 ## We selected these transcripts from the PORT-derived quantifications which must have differed from
 ## the analysis here (different ENSEMBL version) and so the 'high expressed' genes from that quantification aren't
@@ -17,38 +28,55 @@ real = pl.read_csv(snakemake.input.real_cov, separator="\t") \
 sim = pl.read_csv(snakemake.input.sim_cov, separator="\t") \
         .with_columns(pl.lit("sim").alias("source"))
 
+order = ["real", "sim"]
+
 
 both = pl.concat([
         real,
         sim
     ]) \
-    .with_columns(
-        (pl.col("depth_pos_regression") / pl.col("mean")).alias("regression")
-    ).to_pandas()
+    .with_columns( (pl.col("depth_pos_regression") / pl.col("mean")).alias("regression") ) \
+    .with_columns(pl.col("transcript_id").map_dict(transcript_lengths).alias("transcript_length")) \
+    .to_pandas()
+both['length'] = pandas.cut(both['transcript_length'], [0,2000, max(transcript_lengths.values())+1])
+print(both)
 
-fig = sns.catplot(
+fig = sns.displot(
     data = both,
-    x = "source",
-    y = "coef_of_var",
-    kind = "violin",
+    hue = "source",
+    x = "coef_of_var",
+    hue_order = order,
+    kind = "kde",
 )
 fig.savefig(outdir / "coef_of_var.png", dpi=300)
 
-fig = sns.catplot(
+fig = sns.displot(
     data = both,
-    x = "source",
-    y = "depth_pos_corr",
-    kind = "violin",
+    hue = "source",
+    x = "depth_pos_corr",
+    hue_order = order,
+    kind = "kde",
 )
 fig.savefig(outdir / "depth_pos_corr.png", dpi=300)
 
-fig = sns.catplot(
+fig = sns.displot(
     data = both,
-    x = "source",
-    y = "regression",
-    kind = "violin",
+    hue = "source",
+    x = "regression",
+    hue_order = order,
+    kind = "kde",
 )
 fig.savefig(outdir / "regression.png", dpi=300)
+
+fig = sns.displot(
+    both,
+    x = "regression",
+    hue = "source",
+    hue_order = order,
+    col =  "length",
+    kind = "kde",
+)
+fig.savefig(outdir / "gc.by_transcript_length.png", dpi=300)
 
 
 
@@ -81,10 +109,10 @@ fig = sns.relplot(
     x = "GC",
     y = "density",
     hue = "source",
-    kind = "line"
+    hue_order = order,
+    kind = "line",
 )
 fig.savefig(outdir / "gc.png", dpi=300)
-
 
 ### FRAG SIZES
 sim_frag = pl.read_csv(snakemake.input.sim_frag, separator="\t") \
@@ -98,7 +126,7 @@ both_frag = pl.concat([
         sim_frag,
         real_frag,
     ]) \
-    .with_columns((pl.col('counts') / pl.col('counts').mean().over('source')).alias("density"))\
+    .with_columns((pl.col('counts') / pl.col('counts').sum().over('source')).alias("density"))\
     .to_pandas()
 
 fig = sns.relplot(
@@ -106,6 +134,7 @@ fig = sns.relplot(
     x = "frag_size",
     y = "density",
     hue = "source",
-    kind = "line"
+    hue_order = order,
+    kind = "line",
 )
 fig.savefig(outdir / "frag_size.png", dpi=300)

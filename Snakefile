@@ -186,14 +186,15 @@ rule compute_real_coverage:
 
 rule compare_real_sim_cov:
     input:
-        sim_cov = "data/batch2_2/sample1/coverage_summary.txt",
-        sim_gc = "data/batch2_2/sample1/gc_content.txt",
-        sim_seq = "data/batch2_2/sample1/seq_frequencies.json",
-        sim_frag = "data/batch2_2/sample1/frag_sizes.txt",
+        sim_cov = "data/batch5_49/sample1/coverage_summary.txt",
+        sim_gc = "data/batch5_49/sample1/gc_content.txt",
+        sim_seq = "data/batch5_49/sample1/seq_frequencies.json",
+        sim_frag = "data/batch5_49/sample1/frag_sizes.txt",
         real_cov = "real_data/WT4_PolyA/coverage_summary.txt",
         real_gc = "real_data/WT4_PolyA/gc_content.txt",
         real_seq = "real_data/WT4_PolyA/seq_frequencies.json",
         real_frag = "real_data/WT4_PolyA/frag_sizes.txt",
+        reference_genome = "input_data/reference_genome.fasta",
     output:
         outdir = directory("results/compare_real_sim_cov/")
     script:
