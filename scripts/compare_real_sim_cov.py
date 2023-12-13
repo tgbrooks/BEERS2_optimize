@@ -26,20 +26,14 @@ real = pl.read_csv(snakemake.input.real_cov, separator="\t") \
 sim = pl.read_csv(snakemake.input.sim_cov, separator="\t") \
         .with_columns(pl.lit("sim").alias("source"))
 
-real_full = pl.read_csv(snakemake.input.real_full_cov, separator="\t", has_header=False, new_columns=["transcript_id", "pos", "depth"]) \
-        .with_columns(pl.lit("real").alias("source"))
-sim_full = pl.read_csv(snakemake.input.sim_full_cov, separator="\t", has_header=False, new_columns=["transcript_id", "pos", "depth"]) \
-        .with_columns(pl.lit("sim").alias("source"))
-
 both = pl.concat([
         real,
         sim
     ]) \
     .with_columns( (pl.col("depth_pos_regression") / pl.col("mean")).alias("regression") ) \
     .with_columns(pl.col("transcript_id").map_dict(transcript_lengths).alias("transcript_length")) \
-    .join(pl.concat([real_coef_var, sim_coef_var]), on=["transcript_id", "source"], how="left") \
     .to_pandas()
-both['length'] = pandas.cut(both['transcript_length'], [0,2000, max(transcript_lengths.values())+1])
+both['length'] = pandas.cut(both['transcript_length'], [0,3000, max(transcript_lengths.values())+1])
 print(both)
 
 fig = sns.displot(
@@ -50,6 +44,16 @@ fig = sns.displot(
     kind = "kde",
 )
 fig.savefig(outdir / "coef_of_var.png", dpi=300)
+
+fig = sns.displot(
+    both,
+    x = "coef_of_var",
+    hue = "source",
+    hue_order = order,
+    col =  "length",
+    kind = "kde",
+)
+fig.savefig(outdir / "coef_of_var.by_transcript_length.png", dpi=300)
 
 fig = sns.displot(
     data = both,

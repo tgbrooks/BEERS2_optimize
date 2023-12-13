@@ -32,19 +32,19 @@ rule all:
         #"results/coverage",
         #"results/seq_bias/fwd_seq_frequencies.png",
         #"results/igv/url.txt",
-        expand("data/{run}/beers/finished_flag", run = run_configs.keys()),
-        expand("data/{run}/sample1/BEERS_output.sorted.bam", run = run_configs.keys()),
-        expand("data/{run}/sample1/coverage_summary.txt", run = run_configs.keys()),
-        expand("data/{run}/sample1/gc_content.txt", run = run_configs.keys()),
-        expand("data/{run}/sample1/frag_sizes.txt", run = run_configs.keys()),
-        expand("data/{run}/scores.json", run = run_configs.keys()),
+        #expand("data/{run}/beers/finished_flag", run = run_configs.keys()),
+        #expand("data/{run}/sample1/BEERS_output.sorted.bam", run = run_configs.keys()),
+        #expand("data/{run}/sample1/coverage_summary.txt", run = run_configs.keys()),
+        #expand("data/{run}/sample1/gc_content.txt", run = run_configs.keys()),
+        #expand("data/{run}/sample1/frag_sizes.txt", run = run_configs.keys()),
+        #expand("data/{run}/scores.json", run = run_configs.keys()),
         "results/compare_real_sim_cov",
         "real_data/WT4_PolyA/coverage_summary.txt",
         "real_data/WT4_PolyA/gc_content.txt",
-        "data/all_bias/sample1/seq_frequencies.json",
+        #"data/all_bias/sample1/seq_frequencies.json",
         "real_data/WT4_PolyA/seq_frequencies.json",
         "real_data/WT4_PolyA/frag_sizes.txt",
-        expand("data/batch5_{num}/scores.json", num=range(ITERS_PER_BATCH)),
+        #expand("data/batch5_{num}/scores.json", num=range(ITERS_PER_BATCH)),
 
 rule prep_input:
     input:
@@ -186,11 +186,11 @@ rule compute_real_coverage:
 
 rule compare_real_sim_cov:
     input:
-        sim_full_cov = "data/batch5_18/sample1/coverage.txt",
-        sim_cov = "data/batch5_18/sample1/coverage_summary.txt",
-        sim_gc = "data/batch5_18/sample1/gc_content.txt",
-        sim_seq = "data/batch5_18/sample1/seq_frequencies.json",
-        sim_frag = "data/batch5_18/sample1/frag_sizes.txt",
+        sim_full_cov = "data/batch0_0/sample1/coverage.txt",
+        sim_cov = "data/batch0_0/sample1/coverage_summary.txt",
+        sim_gc = "data/batch0_0/sample1/gc_content.txt",
+        sim_seq = "data/batch0_0/sample1/seq_frequencies.json",
+        sim_frag = "data/batch0_0/sample1/frag_sizes.txt",
         real_full_cov = "real_data/WT4_PolyA/coverage.txt",
         real_cov = "real_data/WT4_PolyA/coverage_summary.txt",
         real_gc = "real_data/WT4_PolyA/gc_content.txt",
@@ -291,8 +291,8 @@ rule generate_BAI:
 
 rule make_browser_tracks:
     input:
-        bam_files = expand("data/{run}/sample1/BEERS_output.sorted.bam", run = run_configs.keys()),
-        bai_files = expand("data/{run}/sample1/BEERS_output.sorted.bam.bai", run = run_configs.keys())
+        bam_files = ["data/batch0_0/sample1/BEERS_output.sorted.bam"],
+        bai_files = ["data/batch0_0/sample1/BEERS_output.sorted.bam.bai"],
     output:
         "results/browser_tracks/url.txt",
     params:

@@ -32,13 +32,13 @@ sim_cov = pl.read_csv(snakemake.input.sim_cov, separator="\t")
 real_cov = pl.read_csv(snakemake.input.real_cov, separator="\t")
 
 cov_dist = scipy.stats.wasserstein_distance(
-        sim_cov.filter(pl.col("transcript_length") < 1500)['coef_of_var'],
-        real_cov.filter(pl.col("transcript_length") < 1500)['coef_of_var'],
-    ) / real_cov.filter(pl.col("transcript_length") < 1500)['coef_of_var'].std()
+        sim_cov.filter(pl.col("transcript_length") < 3000)['coef_of_var'],
+        real_cov.filter(pl.col("transcript_length") < 3000)['coef_of_var'],
+    ) / real_cov.filter(pl.col("transcript_length") < 3000)['coef_of_var'].std()
 depth_dist = scipy.stats.wasserstein_distance(
-        sim_cov.filter(pl.col("transcript_length") > 1500)['exp_depth_pos_regression'],
-        real_cov.filter(pl.col("transcript_length") > 1500)['exp_depth_pos_regression'],
-    ) / real_cov.filter(pl.col("transcript_length") > 1500)['exp_depth_pos_regression'].std()
+        sim_cov.filter(pl.col("transcript_length") > 3000)['exp_depth_pos_regression'],
+        real_cov.filter(pl.col("transcript_length") > 3000)['exp_depth_pos_regression'],
+    ) / real_cov.filter(pl.col("transcript_length") > 3000)['exp_depth_pos_regression'].std()
 
 ### GC CONTENT
 # scored by earth-movers distance normalized by SD in real data
