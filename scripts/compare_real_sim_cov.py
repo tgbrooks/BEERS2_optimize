@@ -2,9 +2,12 @@ import pathlib
 import polars as pl
 import pandas
 import seaborn as sns
+import numpy as np
 
 outdir = pathlib.Path(snakemake.output.outdir)
 outdir.mkdir(exist_ok=True)
+
+order = ["real", "sim"]
 
 # Load gene lengths
 with open(snakemake.input.reference_genome, "rt") as f:
@@ -17,19 +20,16 @@ with open(snakemake.input.reference_genome, "rt") as f:
         seq = f.readline().strip()
         transcript_lengths[transcript_id] = len(seq)
 
-## Note we filter out a couple transcripts that had very little coverage
-## We selected these transcripts from the PORT-derived quantifications which must have differed from
-## the analysis here (different ENSEMBL version) and so the 'high expressed' genes from that quantification aren't
-## high expressed here
 real = pl.read_csv(snakemake.input.real_cov, separator="\t") \
-        .filter(pl.col("mean") > 100) \
         .with_columns(pl.lit("real").alias("source"))
 
 sim = pl.read_csv(snakemake.input.sim_cov, separator="\t") \
         .with_columns(pl.lit("sim").alias("source"))
 
-order = ["real", "sim"]
-
+real_full = pl.read_csv(snakemake.input.real_full_cov, separator="\t", has_header=False, new_columns=["transcript_id", "pos", "depth"]) \
+        .with_columns(pl.lit("real").alias("source"))
+sim_full = pl.read_csv(snakemake.input.sim_full_cov, separator="\t", has_header=False, new_columns=["transcript_id", "pos", "depth"]) \
+        .with_columns(pl.lit("sim").alias("source"))
 
 both = pl.concat([
         real,
@@ -37,6 +37,7 @@ both = pl.concat([
     ]) \
     .with_columns( (pl.col("depth_pos_regression") / pl.col("mean")).alias("regression") ) \
     .with_columns(pl.col("transcript_id").map_dict(transcript_lengths).alias("transcript_length")) \
+    .join(pl.concat([real_coef_var, sim_coef_var]), on=["transcript_id", "source"], how="left") \
     .to_pandas()
 both['length'] = pandas.cut(both['transcript_length'], [0,2000, max(transcript_lengths.values())+1])
 print(both)
@@ -76,7 +77,17 @@ fig = sns.displot(
     col =  "length",
     kind = "kde",
 )
-fig.savefig(outdir / "gc.by_transcript_length.png", dpi=300)
+fig.savefig(outdir / "regression.by_transcript_length.png", dpi=300)
+
+fig = sns.displot(
+    both,
+    x = "exp_depth_pos_regression",
+    hue = "source",
+    hue_order = order,
+    col =  "length",
+    kind = "kde",
+)
+fig.savefig(outdir / "exp_regression.by_transcript_length.png", dpi=300)
 
 
 
