@@ -52,6 +52,7 @@ fig = sns.displot(
     hue_order = order,
     col =  "length",
     kind = "kde",
+    facet_kws=dict(sharex=False, sharey=False),
 )
 fig.savefig(outdir / "coef_of_var.by_transcript_length.png", dpi=300)
 
@@ -90,6 +91,7 @@ fig = sns.displot(
     hue_order = order,
     col =  "length",
     kind = "kde",
+    facet_kws=dict(sharex=False, sharey=False),
 )
 fig.savefig(outdir / "exp_regression.by_transcript_length.png", dpi=300)
 
