@@ -12,8 +12,8 @@ We used `samtools` version 1.11.
 Similarly, we require `python` version 3.11.
 
 ``` sh
-git clone gitt@github.com:tgbrooks/BEERS2_optimization
-cd BEERS2_optimization
+git clone git@github.com:tgbrooks/BEERS2_optimize.git
+cd BEERS2_optimize
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
