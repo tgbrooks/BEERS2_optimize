@@ -4,6 +4,8 @@ import pandas
 import seaborn as sns
 import numpy as np
 
+sim_dir = pathlib.Path(snakemake.input.sim)
+
 outdir = pathlib.Path(snakemake.output.outdir)
 outdir.mkdir(exist_ok=True)
 
@@ -23,7 +25,7 @@ with open(snakemake.input.reference_genome, "rt") as f:
 real = pl.read_csv(snakemake.input.real_cov, separator="\t") \
         .with_columns(pl.lit("real").alias("source"))
 
-sim = pl.read_csv(snakemake.input.sim_cov, separator="\t") \
+sim = pl.read_csv(sim_dir / "coverage_summary.txt", separator="\t") \
         .with_columns(pl.lit("sim").alias("source"))
 
 both = pl.concat([
@@ -98,7 +100,7 @@ fig.savefig(outdir / "exp_regression.by_transcript_length.png", dpi=300)
 
 
 ### GC CONTENT
-sim_gc = pl.read_csv(snakemake.input.sim_gc, separator="\t") \
+sim_gc = pl.read_csv(sim_dir / "gc_content.txt", separator="\t") \
         .with_columns(
                 (pl.col('read_count') / pl.col('read_count').mean()).alias('density'),
                 # Summarize to the nearest 5% - the plot is ragged otherwise due to floating point issues
@@ -132,7 +134,7 @@ fig = sns.relplot(
 fig.savefig(outdir / "gc.png", dpi=300)
 
 ### FRAG SIZES
-sim_frag = pl.read_csv(snakemake.input.sim_frag, separator="\t") \
+sim_frag = pl.read_csv(sim_dir / "frag_sizes.txt", separator="\t") \
         .sort("frag_size") \
         .with_columns(pl.lit("sim").alias("source"))
 real_frag = pl.read_csv(snakemake.input.real_frag, separator="\t") \

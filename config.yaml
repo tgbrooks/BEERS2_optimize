@@ -1,8 +1,8 @@
 reference_genome:
     # Paths to the fasta and gtf file - please set these to be your desired files
     # TODO: replace these with your desired locations
-    fasta: "/project/itmatlab/index/SALMON-1.9.0_indexes/GRCm38.ensemblv93/Mus_musculus.GRCm38.Ensembl.v93.cdna_ncrna_dna.fa.gz"
-    gtf: "/project/itmatlab/index/SALMON-1.9.0_indexes/GRCm38.ensemblv93/Mus_musculus.GRCm38.93.gtf.gz"
+    fasta: "EXAMPLE/GRCm38.ensemblv93/Mus_musculus.GRCm38.Ensembl.v93.cdna_ncrna_dna.fa.gz"
+    gtf: "EXAMPLE/GRCm38.ensemblv93/Mus_musculus.GRCm38.93.gtf.gz"
 
 # Configuration of the optimization process
 optimization:
@@ -16,8 +16,9 @@ optimization:
 real_sample:
     # The real sample we want to replicate
     # Assumed to be paired end data
-    FASTQ_R1: "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R1.fastq.gz"
-    FASTQ_R2: "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R2.fastq.gz"
+    # TODO: replace these paths with your target reference
+    FASTQ_R1: "EXAMPLE/WT4_PolyA/deduped.R1.fastq.gz"
+    FASTQ_R2: "EXAMPLE/WT4_PolyA/deduped.R2.fastq.gz"
     # NOTE: BAM file needs to be in a write-able location, so that it can be sorted and indexed
-    BAM: "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.Aligned.out.bam"
+    BAM: "EXAMPLE/WT4_PolyA/deduped.Aligned.out.bam"
 

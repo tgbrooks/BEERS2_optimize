@@ -25,7 +25,7 @@ wildcard_constraints:
 rule all:
     input:
         "results/compare_real_sim_cov",
-        expand("data/batch{num_batches}_{num}/scores.json", num_batches=[NUM_BATCHES], num=range(ITERS_PER_BATCH)),
+        "results/optimal_configuration.yaml",
 
 rule prep_input:
     input:
@@ -164,13 +164,20 @@ rule compute_real_coverage:
     script:
         "scripts/compute_real_coverage.py"
 
+rule select_best_performing:
+    input:
+        scores = lambda wildcards: [f"data/batch{batch}_{num}/scores.json"
+                                        for batch in range(NUM_BATCHES+1)
+                                        for num in range(ITERS_PER_BATCH if batch > 0 else 1)],
+    output:
+        out_dir = directory("results/optimal_configuration/"),
+        config = "results/optimal_configuration.yaml",
+    script:
+        "scripts/select_best_performing.py"
+
 rule compare_real_sim_cov:
     input:
-        sim_full_cov = "data/batch5_14/sample1/coverage.txt",
-        sim_cov = "data/batch5_14/sample1/coverage_summary.txt",
-        sim_gc = "data/batch5_14/sample1/gc_content.txt",
-        sim_seq = "data/batch5_14/sample1/seq_frequencies.json",
-        sim_frag = "data/batch5_14/sample1/frag_sizes.txt",
+        sim = "results/optimal_configuration",
         real_full_cov = "real_data/coverage.txt",
         real_cov = "real_data/coverage_summary.txt",
         real_gc = "real_data/gc_content.txt",
