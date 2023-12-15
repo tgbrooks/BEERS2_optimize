@@ -1,4 +1,4 @@
-BEERS2 @ gitt+https://github.com/itmat/BEERS2@918813a
+BEERS2 @ git+https://github.com/itmat/BEERS2@918813a
 gtfparse==2.0.1
 matplotlib==3.7.1
 numpy==1.24.2
