@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 set -e
 module load /project/itmatlab/sharedmodules/use.shared
-module load salmon-v1.4.0
 module load samtools/1.11
 module load htslib/1.11
 module load /project/itmatlab/sharedmodules/OpenSSL-v3.0.1

@@ -4,47 +4,28 @@ import itertools
 configfile:
     "config.yaml"
 
-run_configs = config['run_configs']
-sample_ids = config['sample_ids']
-lanes_used = config['lanes_used']
+TRANSCRIPTOME_FASTA = config['reference_genome']['fasta']
+GTF = config['reference_genome']['gtf']
 
-RCLONE_REMOTE = "aws_igv_data" # Must first run `rclone config` and set up a remote with this name for uploading trackhubs to
-BUCKET_NAME = "itmat.igv.data" # Bucket to upload to with rclone for trackhubs
-BUCKET_DIR = f"BEERS2_ASSESS/DATA"
-
-CAMPAREE_CONFIG = 'config/camparee_config.yaml'
-
-TRANSCRIPTOME_FASTA = "/project/itmatlab/index/SALMON-1.9.0_indexes/GRCm38.ensemblv93/Mus_musculus.GRCm38.Ensembl.v93.cdna_ncrna_dna.fa.gz"
-GTF = "/project/itmatlab/index/SALMON-1.9.0_indexes/GRCm38.ensemblv93/Mus_musculus.GRCm38.93.gtf.gz"
-
-ITERS_PER_BATCH = 50
-TAKE_TOP_N = 10
+ITERS_PER_BATCH = config['optimization']['iters_per_batch']
+TAKE_TOP_N = config['optimization']['take_top_n']
+NUM_BATCHES = config['optimization']['num_batches']
+R1_FASTQ = config['real_sample']['FASTQ_R1']
+R2_FASTQ = config['real_sample']['FASTQ_R2']
+BAM = config['real_sample']['BAM']
+BAM_PATH = pathlib.Path(BAM)
+BAM_SORTED = BAM_PATH.parent / f"{BAM_PATH.stem}.sorted.bam"
+BAI = BAM_PATH.parent / f"{BAM_PATH.stem}.sorted.bam.bai"
 
 wildcard_constraints:
-    sample = "[0-9]+",
-    run = "[a-zA-Z0-9_]+",
+    sample = "[0-9]+", # actually only use sample=1 in this
+    run = "[a-zA-Z0-9_]+", # these will actually be of the form batchX_XX in this, where X's represent digits
     filename = "[a-zA-Z0-0_\\.]+"
 
 rule all:
     input:
-        #"results/browser_tracks/url.txt",
-        #"results/gc_content/",
-        #"results/coverage",
-        #"results/seq_bias/fwd_seq_frequencies.png",
-        #"results/igv/url.txt",
-        #expand("data/{run}/beers/finished_flag", run = run_configs.keys()),
-        #expand("data/{run}/sample1/BEERS_output.sorted.bam", run = run_configs.keys()),
-        #expand("data/{run}/sample1/coverage_summary.txt", run = run_configs.keys()),
-        #expand("data/{run}/sample1/gc_content.txt", run = run_configs.keys()),
-        #expand("data/{run}/sample1/frag_sizes.txt", run = run_configs.keys()),
-        #expand("data/{run}/scores.json", run = run_configs.keys()),
         "results/compare_real_sim_cov",
-        "real_data/WT4_PolyA/coverage_summary.txt",
-        "real_data/WT4_PolyA/gc_content.txt",
-        #"data/all_bias/sample1/seq_frequencies.json",
-        "real_data/WT4_PolyA/seq_frequencies.json",
-        "real_data/WT4_PolyA/frag_sizes.txt",
-        #expand("data/batch5_{num}/scores.json", num=range(ITERS_PER_BATCH)),
+        expand("data/batch{num_batches}_{num}/scores.json", num_batches=[NUM_BATCHES], num=range(ITERS_PER_BATCH)),
 
 rule prep_input:
     input:
@@ -127,13 +108,12 @@ rule compute_gc_content_from_beers:
 
 rule compute_gc_content_from_real:
     input:
-        "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R1.fastq.gz",
-        "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R2.fastq.gz",
+        R1_FASTQ,
+        R2_FASTQ,
     output:
-        gc_content = "real_data/WT4_PolyA/gc_content.txt"
+        gc_content = "real_data/gc_content.txt"
     params:
-        fastq_files = ["/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R1.fastq.gz",
-            "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R2.fastq.gz"]
+        fastq_files = [R1_FASTQ, R2_FASTQ]
     resources:
         mem_mb = 6_000,
     script:
@@ -175,27 +155,27 @@ rule summarize_coverage:
 
 rule compute_real_coverage:
     input:
-        bam = "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.Aligned.out.sorted.bam",
+        bam = BAM_SORTED,
         gene_ids = "chosen_transcripts.txt",
         gtf = GTF,
-        bai = "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.Aligned.out.sorted.bam.bai",
+        bai = BAI,
     output:
-        cov = "real_data/WT4_PolyA/coverage.txt"
+        cov = "real_data/coverage.txt"
     script:
         "scripts/compute_real_coverage.py"
 
 rule compare_real_sim_cov:
     input:
-        sim_full_cov = "data/batch0_0/sample1/coverage.txt",
-        sim_cov = "data/batch0_0/sample1/coverage_summary.txt",
-        sim_gc = "data/batch0_0/sample1/gc_content.txt",
-        sim_seq = "data/batch0_0/sample1/seq_frequencies.json",
-        sim_frag = "data/batch0_0/sample1/frag_sizes.txt",
-        real_full_cov = "real_data/WT4_PolyA/coverage.txt",
-        real_cov = "real_data/WT4_PolyA/coverage_summary.txt",
-        real_gc = "real_data/WT4_PolyA/gc_content.txt",
-        real_seq = "real_data/WT4_PolyA/seq_frequencies.json",
-        real_frag = "real_data/WT4_PolyA/frag_sizes.txt",
+        sim_full_cov = "data/batch5_14/sample1/coverage.txt",
+        sim_cov = "data/batch5_14/sample1/coverage_summary.txt",
+        sim_gc = "data/batch5_14/sample1/gc_content.txt",
+        sim_seq = "data/batch5_14/sample1/seq_frequencies.json",
+        sim_frag = "data/batch5_14/sample1/frag_sizes.txt",
+        real_full_cov = "real_data/coverage.txt",
+        real_cov = "real_data/coverage_summary.txt",
+        real_gc = "real_data/gc_content.txt",
+        real_seq = "real_data/seq_frequencies.json",
+        real_frag = "real_data/frag_sizes.txt",
         reference_genome = "input_data/reference_genome.fasta",
     output:
         outdir = directory("results/compare_real_sim_cov/")
@@ -214,15 +194,12 @@ rule compute_seq_bias:
 
 rule compute_seq_bias_from_real:
     input:
-        "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R1.fastq.gz",
-        "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R2.fastq.gz",
+        R1_FASTQ,
+        R2_FASTQ,
     params:
-        fastq_files = [
-            "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R1.fastq.gz",
-            "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.R2.fastq.gz",
-        ]
+        fastq_files = [R1_FASTQ, R2_FASTQ]
     output:
-        seq_frequencies = "real_data/WT4_PolyA/seq_frequencies.json",
+        seq_frequencies = "real_data/seq_frequencies.json",
     script:
         "scripts/compute_seq_bias.py"
 
@@ -238,23 +215,14 @@ rule compute_frag_sizes_from_beers:
 
 rule compute_frag_sizes_from_real:
     input:
-        bam = "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.Aligned.out.sorted.bam",
+        bam = BAM_SORTED,
         gene_ids = "chosen_transcripts.txt",
         gtf = GTF,
-        bai = "/home/thobr/for_tom/BEERS_noselect/data_UMI/samples/WT4_PolyA/deduped.Aligned.out.sorted.bam.bai",
+        bai = BAI,
     output:
-        frag_sizes = "real_data/WT4_PolyA/frag_sizes.txt"
+        frag_sizes = "real_data/frag_sizes.txt"
     script:
         "scripts/compute_frag_sizes_from_real.py"
-
-rule plot_seq_bias:
-    input:
-        seq_frequencies = "results/seq_bias/seq_frequencies.json",
-    output:
-        fwd_frequencies = "results/seq_bias/fwd_seq_frequencies.png",
-        rev_frequencies = "results/seq_bias/rev_seq_frequencies.png",
-    script:
-        "scripts/plot_seq_bias.py"
 
 rule compute_scores:
     input:
@@ -262,10 +230,10 @@ rule compute_scores:
         sim_gc = "data/{run}/sample1/gc_content.txt",
         sim_seq = "data/{run}/sample1/seq_frequencies.json",
         sim_frag = "data/{run}/sample1/frag_sizes.txt",
-        real_cov = "real_data/WT4_PolyA/coverage_summary.txt",
-        real_gc = "real_data/WT4_PolyA/gc_content.txt",
-        real_seq = "real_data/WT4_PolyA/seq_frequencies.json",
-        real_frag = "real_data/WT4_PolyA/frag_sizes.txt",
+        real_cov = "real_data/coverage_summary.txt",
+        real_gc = "real_data/gc_content.txt",
+        real_seq = "real_data/seq_frequencies.json",
+        real_frag = "real_data/frag_sizes.txt",
     output:
         results = "data/{run}/scores.json"
     script:
@@ -288,80 +256,3 @@ rule generate_BAI:
         mem_mb = 6_000
     shell:
         'samtools index -b {input} >> {output}'
-
-rule make_browser_tracks:
-    input:
-        bam_files = ["data/batch0_0/sample1/BEERS_output.sorted.bam"],
-        bai_files = ["data/batch0_0/sample1/BEERS_output.sorted.bam.bai"],
-    output:
-        "results/browser_tracks/url.txt",
-    params:
-        track_dir = "results/browser_tracks/",
-    run:
-        # region to use:
-        # chr16:37,868,389-37,888,858
-        chrom = "16"
-        start = 37868389
-        end = 37888858
-
-        track_dir = pathlib.Path(params.track_dir)
-        track_dir.mkdir(exist_ok=True)
-
-        temp_dir = track_dir / "temp"
-        temp_dir.mkdir(exist_ok=True)
-
-
-        hub = (f"hub BEERS2_asses\n"
-               f"shortLabel BEERS2\n"
-               f"longLabel BEERS2 Assess - Apob only - Gregory Grant ITMAT Bioinformatics Lab\n"
-               f"genomesFile genomes.txt\n"
-               f"email ggrant@pennmedicine.upenn.edu\n"
-               #f"descriptionUrl"
-               )
-        (track_dir / "hub.txt").write_text(hub)
-
-        genomes = (f"genome mm10\n"
-                   f"trackDb mm10/trackDb.txt\n"
-                   #f"metaTab mm10/tabSeparatedFile.txt"
-                   )
-        (track_dir / "genomes.txt").write_text(genomes)
-
-        genome_dir = track_dir / "mm10"
-        genome_dir.mkdir(exist_ok=True)
-
-        # Make the coverage files
-        for run in run_configs.keys():
-            track_head = f'track type=wiggle_0 name="{run}" description="{run}" visibility=full autoScale=on color=70,128,83 maxHeightPixels=100:50:20 graphType=bar priority=20'
-            cov_head = f"fixedStep chrom=chr{chrom} start={start} step=1"
-            cmd = f'( echo "{track_head}"; echo "{cov_head}"; samtools depth -sa -r {chrom}:{start}-{end} data/{run}/sample1/BEERS_output.bam | cut -f3; ) | cat > {genome_dir}/{run}.wig'
-            print(cmd)
-            shell(cmd)
-
-
-        #track_db = [(f"track {sample_id}.{direction}\n"
-        #             f"bigDataUrl {sample_id}.{direction}.Unique.bw\n"
-        #             f"shortLabel {sample_id}.{direction}\n"
-        #             f"longLabel {sample_id}.{direction}\n"
-        #             f"visibility full\n"
-        #             f"autoScale on\n"
-        #             f"alwaysZero on\n"
-        #             f"type bigWig\n")
-        #                 for sample_id in samples
-        #                 for direction in ['forward', 'reverse']]
-        #(genome_dir / "trackDb.txt").write_text('\n'.join(track_db))
-
-        #print("Uploading to bucket via rclone")
-        #COV_URL = f"BEERS2_EXPERIMENTS/SELECTION_FRAG_AND_PCR_RAMP/{wildcards.batch_full}/COV_TRACKS/"
-        #rclone_cmd = f"rclone copy {track_dir} {RCLONE_REMOTE}:{BUCKET_NAME}/{COV_URL}"
-        #print(rclone_cmd)
-        #shell(rclone_cmd)
-
-        #for sample_id in samples:
-        #    for direction in ['forward', 'reverse']:
-        #        bigWig = pathlib.Path(f"../PROCESSED/{wildcards.batch_full}/NORMALIZED_DATA/EXON_INTRON_JUNCTION/COV/{sample_id}.{direction}.Unique.bw")
-        #        rclone_cmd = f"rclone copyto {bigWig} {RCLONE_REMOTE}:{BUCKET_NAME}/{COV_URL}mm10/{bigWig.name}"
-        #        print(rclone_cmd)
-        #        shell(rclone_cmd)
-
-        ## Write out the URL of the trackhub for easy use in the genome browser
-        #(track_dir / "url.txt").write_text(f"https://{BUCKET_NAME}.s3.amazonaws.com/{COV_URL}hub.txt\n")
